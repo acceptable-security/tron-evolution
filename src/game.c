@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "tron.h"
+#include <unistd.h>
 
 unsigned int rgb2pair(int rgb) {
     switch ( rgb ) {
@@ -12,6 +13,105 @@ unsigned int rgb2pair(int rgb) {
         case 0xFF00FF: return 4;
         default:       return 5;
     }
+}
+
+int game() {
+    tron_state_t* tron = tron_state_init();
+
+    tron_state_spawn_bike(tron, 5, 5, false);
+    tron_state_spawn_bike(tron, GRID_W - 1, GRID_H - 1, false);
+
+    while ( true ) {
+        switch ( getch() ) {
+            case 'w':
+                if ( tron->bikes[0] != NULL ) {
+                    tron_bike_turn(tron->bikes[0], NORTH);
+                }
+
+                break;
+            case 's':
+                if ( tron->bikes[0] != NULL ) {
+                    tron_bike_turn(tron->bikes[0], SOUTH);
+                }
+
+                break;
+            case 'd':
+                if ( tron->bikes[0] != NULL ) {
+                    tron_bike_turn(tron->bikes[0], EAST);
+                }
+
+                break;
+
+            case 'a':
+                if ( tron->bikes[0] != NULL ) {
+                    tron_bike_turn(tron->bikes[0], WEST);
+                }
+
+                break;
+
+            case ' ':
+                tron_state_step(tron);
+                break;
+
+            case 'q':
+                goto lose;
+                return 1;
+
+            default:
+                break;
+        }
+
+        tron_state_step(tron);
+
+        for ( int x = 0; x < GRID_W; x++ ) {
+            for ( int y = 0; y < GRID_H; y++ ) {
+                move(y, x);
+
+                if ( tron->grid[x][y].state == EMPTY ) {
+                    if ( x != 0 || y != 0 || x != GRID_W - 1 || y != GRID_H - 1 ) {
+                        addch(' ');
+                    }
+                }
+                else if ( tron->grid[x][y].state == LIGHT ) {
+                    color_set(rgb2pair(tron->grid[x][y].color), NULL);
+                    addch('#');
+                }
+                else if ( tron->grid[x][y].state == BIKE ) {
+                    color_set(rgb2pair(tron->grid[x][y].bike->color), NULL);
+                    
+                    switch ( tron->grid[x][y].bike->dir ) {
+                        case NORTH: addch('^');
+                        case EAST:  addch('>');
+                        case WEST:  addch('<');
+                        case SOUTH: addch('V');
+                    }
+                }
+            }
+        }
+
+        color_set(0, NULL);
+        box(stdscr, 0, 0);
+        refresh();
+
+        if ( tron->bikes[0] == NULL ) {
+            goto lose;
+        }
+
+        usleep(60000);
+    }
+
+    lose:
+    tron_state_clean(tron);
+    color_set(1, NULL);
+    mvprintw((GRID_H - 1) / 2, ((GRID_W - 1) / 2) - 7, "You lose! Space to retry.");
+    refresh();
+    sleep(2);
+
+    if ( getch() == ' ' ) {
+        return game();
+    }
+
+    return 0;
 }
 
 int main(int argc, char* argv[]) {
@@ -32,80 +132,12 @@ int main(int argc, char* argv[]) {
 	init_pair(4,  COLOR_YELLOW,  COLOR_BLACK);
     init_pair(5,  COLOR_MAGENTA, COLOR_BLACK);
 
-    resize_term(GRID_W + 1, GRID_H + 1);
+    resize_term(GRID_H + 1, GRID_W + 1);
     nodelay(window, true);
     box(stdscr, 0, 0);
 
-    tron_state_t* tron = tron_state_init();
-    tron_state_spawn_bike(tron, 5, 5, false);
-    tron_state_spawn_bike(tron, GRID_W - 1, GRID_H - 1, false);
+    game();
 
-    int a = 0;
-
-    while ( true ) {
-        mvprintw(2, 2, "A: %d", a++);
-        switch ( getch() ) {
-            case 'w':
-                tron->bikes[0]->dir = NORTH;
-                break;
-            case 's':
-                tron->bikes[0]->dir = SOUTH;
-                break;
-            case 'd':
-                tron->bikes[0]->dir = EAST;
-                break;
-                tron->bikes[0]->dir = WEST;
-            case 'a':
-                break;
-
-            case ' ':
-                tron_state_step(tron);
-                break;
-
-            case 'q':
-                goto end;
-                return 1;
-
-            default:
-                break;
-        }
-
-        int b = 3;
-
-        for ( int x = 0; x < GRID_W; x++ ) {
-            for ( int y = 0; y < GRID_H; y++ ) {
-                move(y, x);
-
-                if ( tron->grid[x][y].state == EMPTY ) {
-                    if ( x != 0 || y != 0 || x != GRID_W - 1 || y != GRID_H - 1 ) {
-                        addch(' ');
-                    }
-                }
-                else if ( tron->grid[x][y].state == LIGHT ) {
-                    color_set(rgb2pair(tron->grid[x][y].color), NULL);
-                    addch('#');
-                }
-                else if ( tron->grid[x][y].state == BIKE ) {
-                    color_set(rgb2pair(tron->grid[x][y].bike->color), NULL);
-                    mvprintw(b++, 2, "%d %d", x, y);
-                    move(y, x);
-                    switch ( tron->grid[x][y].bike->dir ) {
-                        case NORTH: addch('^');
-                        case EAST:  addch('>');
-                        case WEST:  addch('<');
-                        case SOUTH: addch('V');
-                    }
-                }
-            }
-        }
-
-        color_set(0, NULL);
-        box(stdscr, 0, 0);
-        refresh();
-        sleep(1);
-    }
-
-    end:
     delwin(window);
     endwin();
 

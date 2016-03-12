@@ -1,14 +1,18 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "tron.h"
+#include <curses.h>
 
 unsigned int bike_colors[] = { 0xFF0000, 0x00FF00, 0x0000FF, 0xFF00FF };
 int bike_color_cnt = 4;
 
-void _tron_state_destroy_bike(tron_state_t* state, int x, int y) {
+void _tron_state_destroy_bike(tron_state_t* state, tron_bike_t* bike) {
+    int x = bike->x;
+    int y = bike->y;
+
     assert(state->grid[x][y].state == BIKE);
 
-    int color = state->grid[x][y].bike->color;
+    int color = bike->color;
     state->grid[x][y].state = EMPTY;
 
     for ( int sx = 0; sx < GRID_W; sx++ ) {
@@ -20,31 +24,49 @@ void _tron_state_destroy_bike(tron_state_t* state, int x, int y) {
             }
         }
     }
+
+    for ( int i = 0; i < state->bike_cnt; i++ ) {
+        if ( state->bikes[i] == bike ) {
+            state->bikes[i] = NULL;
+        }
+    }
+
+    free(bike);
 }
 
 void _tron_state_ai(tron_state_t* state, tron_bike_t* bike) {
     // TODO - Tron AI
 }
 
+void tron_bike_turn(tron_bike_t* bike, tron_direction_t dir) {
+    if ( (bike->dir + 2) % 4 != dir ) {
+        bike->dir = dir;
+    }
+}
+
 void tron_state_step(tron_state_t* state) {
     for ( int i = 0; i < state->bike_cnt; i++ ) {
+        if ( state->bikes[i] == NULL ) {
+            continue;
+        }
+
         int x = state->bikes[i]->x;
         int y = state->bikes[i]->y;
 
         int nx = x;
         int ny = y;
 
-        switch ( state->grid[x][y].bike->dir ) {
+        switch ( state->bikes[i]->dir ) {
             case NORTH:
                 nx += 0;
-                ny += -1;
+                ny -= 1;
                 break;
             case EAST:
-                nx += -1;
-                ny +=  0;
+                nx += 1;
+                ny += 0;
                 break;
             case WEST:
-                nx += 1;
+                nx -= 1;
                 ny += 0;
                 break;
             case SOUTH:
@@ -54,7 +76,7 @@ void tron_state_step(tron_state_t* state) {
         }
 
         if ( nx < 0 || ny < 0 || nx >= GRID_W || ny >= GRID_H || state->grid[nx][ny].state != EMPTY ) {
-            _tron_state_destroy_bike(state, x, y);
+            _tron_state_destroy_bike(state, state->bikes[i]);
         }
         else {
             state->bikes[i]->x = nx;

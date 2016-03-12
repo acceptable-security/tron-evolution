@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#define GRID_W 24
+#define GRID_W 48
 #define GRID_H 24
 
 typedef enum {
@@ -57,6 +57,7 @@ typedef struct {
 
 void tron_state_step(tron_state_t* state);
 void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai);
+void tron_bike_turn(tron_bike_t* bike, tron_direction_t dir);
 tron_state_t* tron_state_init();
 void tron_state_clean(tron_state_t* tron);
 
