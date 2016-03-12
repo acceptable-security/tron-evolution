@@ -50,6 +50,7 @@ typedef struct {
     tron_game_state_t game_state;
     tron_cell_t grid[GRID_W][GRID_H];
 
+    tron_bike_t* player;
     tron_bike_t** bikes;
     unsigned int bike_cnt;
     unsigned int bike_alloc;

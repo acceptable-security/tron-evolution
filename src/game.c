@@ -7,6 +7,7 @@
 
 unsigned int rgb2pair(int rgb) {
     switch ( rgb ) {
+        case 0x000000: return 0;
         case 0xFF0000: return 1;
         case 0x00FF00: return 2;
         case 0x0000FF: return 3;
@@ -19,32 +20,32 @@ int game() {
     tron_state_t* tron = tron_state_init();
 
     tron_state_spawn_bike(tron, 5, 5, false);
-    tron_state_spawn_bike(tron, GRID_W - 1, GRID_H - 1, false);
+    tron_state_spawn_bike(tron, 10, 10, true);
 
     while ( true ) {
         switch ( getch() ) {
             case 'w':
-                if ( tron->bikes[0] != NULL ) {
-                    tron_bike_turn(tron->bikes[0], NORTH);
+                if ( tron->player != NULL ) {
+                    tron_bike_turn(tron->player, NORTH);
                 }
 
                 break;
             case 's':
-                if ( tron->bikes[0] != NULL ) {
-                    tron_bike_turn(tron->bikes[0], SOUTH);
+                if ( tron->player != NULL ) {
+                    tron_bike_turn(tron->player, SOUTH);
                 }
 
                 break;
             case 'd':
-                if ( tron->bikes[0] != NULL ) {
-                    tron_bike_turn(tron->bikes[0], EAST);
+                if ( tron->player != NULL ) {
+                    tron_bike_turn(tron->player, EAST);
                 }
 
                 break;
 
             case 'a':
-                if ( tron->bikes[0] != NULL ) {
-                    tron_bike_turn(tron->bikes[0], WEST);
+                if ( tron->player != NULL ) {
+                    tron_bike_turn(tron->player, WEST);
                 }
 
                 break;
@@ -78,7 +79,7 @@ int game() {
                 }
                 else if ( tron->grid[x][y].state == BIKE ) {
                     color_set(rgb2pair(tron->grid[x][y].bike->color), NULL);
-                    
+
                     switch ( tron->grid[x][y].bike->dir ) {
                         case NORTH: addch('^');
                         case EAST:  addch('>');

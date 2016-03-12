@@ -31,11 +31,79 @@ void _tron_state_destroy_bike(tron_state_t* state, tron_bike_t* bike) {
         }
     }
 
+    if ( state->player == bike ) {
+        state->player = NULL;
+    }
+
     free(bike);
 }
 
+bool _tron_state_safe(tron_state_t* state, int x, int y) {
+    return !(x < 1 || y < 1 || x >= GRID_W - 1 || y >= GRID_H - 1 || state->grid[x][y].state != EMPTY);
+}
+
 void _tron_state_ai(tron_state_t* state, tron_bike_t* bike) {
-    // TODO - Tron AI
+    int x = bike->x;
+    int y = bike->y;
+
+    int nx = x;
+    int ny = y;
+
+    switch ( bike->dir ) {
+        case NORTH:
+            nx += 0;
+            ny -= 1;
+            break;
+        case EAST:
+            nx += 1;
+            ny += 0;
+            break;
+        case WEST:
+            nx -= 1;
+            ny += 0;
+            break;
+        case SOUTH:
+            nx += 0;
+            ny += 1;
+            break;
+    }
+
+    if ( !_tron_state_safe(state, nx, ny) ) {
+        int dir = 0;
+
+        for ( int i = 0; i < 3; i++ ) {
+            nx = bike->x;
+            ny = bike->y;
+
+            switch ( (bike->dir + i) % 4 ) {
+                case NORTH:
+                    nx += 0;
+                    ny -= 1;
+                    dir = NORTH;
+                    break;
+                case EAST:
+                    nx += 1;
+                    ny += 0;
+                    dir = EAST;
+                    break;
+                case WEST:
+                    nx -= 1;
+                    ny += 0;
+                    dir = WEST;
+                    break;
+                case SOUTH:
+                    nx += 0;
+                    ny += 1;
+                    dir = SOUTH;
+                    break;
+            }
+
+            if ( _tron_state_safe(state, nx, ny) ) {
+                bike->dir = dir;
+                return;
+            }
+        }
+    }
 }
 
 void tron_bike_turn(tron_bike_t* bike, tron_direction_t dir) {
@@ -48,6 +116,10 @@ void tron_state_step(tron_state_t* state) {
     for ( int i = 0; i < state->bike_cnt; i++ ) {
         if ( state->bikes[i] == NULL ) {
             continue;
+        }
+
+        if ( state->bikes[i]->ai ) {
+            _tron_state_ai(state, state->bikes[i]);
         }
 
         int x = state->bikes[i]->x;
@@ -91,6 +163,10 @@ void tron_state_step(tron_state_t* state) {
 }
 
 void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai) {
+    if ( !ai ) {
+        assert(state->player == NULL);
+    }
+
     tron_bike_t* bike = (tron_bike_t*) malloc(sizeof(tron_bike_t));
     bike->dir = SOUTH;
     bike->color = bike_colors[state->bike_cnt % bike_color_cnt];
@@ -107,11 +183,16 @@ void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai) {
     }
 
     state->bikes[state->bike_cnt++] = bike;
+
+    if ( !ai ) {
+        state->player = bike;
+    }
 }
 
 tron_state_t* tron_state_init() {
     tron_state_t* state = (tron_state_t*) malloc(sizeof(tron_state_t));
 
+    state->player = NULL;
     state->bike_cnt = 0;
     state->bike_alloc = 4;
     state->bikes = malloc(sizeof(tron_bike_t) * state->bike_alloc);
