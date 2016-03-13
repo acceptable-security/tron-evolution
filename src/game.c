@@ -125,13 +125,12 @@ int game(int width, int height) {
     refresh();
     sleep(2);
 
+    int c = 0;
 
-    while ( true ) {
-        int c = getch();
-
-        if ( c == ERR ) break;
+    do {
+        c = getch();
         if ( c == ' ' ) return game(width, height);
-    }
+    } while ( c != ERR );
 
     return 0;
 }
