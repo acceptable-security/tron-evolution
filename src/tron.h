@@ -3,8 +3,7 @@
 
 #include <stdbool.h>
 
-#define GRID_W 48
-#define GRID_H 24
+#define POS(x, y) (y * state->width) + x
 
 typedef enum {
     NORTH,
@@ -20,6 +19,8 @@ typedef struct {
 
     int x;
     int y;
+
+    unsigned int score;
 } tron_bike_t;
 
 typedef enum {
@@ -47,8 +48,11 @@ typedef enum {
 } tron_game_state_t;
 
 typedef struct {
+    int width;
+    int height;
+
     tron_game_state_t game_state;
-    tron_cell_t grid[GRID_W][GRID_H];
+    tron_cell_t* grid;
 
     tron_bike_t* player;
     tron_bike_t** bikes;
@@ -59,7 +63,7 @@ typedef struct {
 void tron_state_step(tron_state_t* state);
 void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai);
 void tron_bike_turn(tron_bike_t* bike, tron_direction_t dir);
-tron_state_t* tron_state_init();
+tron_state_t* tron_state_init(int width, int height);
 void tron_state_clean(tron_state_t* tron);
 
 #endif

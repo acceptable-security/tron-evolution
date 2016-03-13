@@ -10,16 +10,16 @@ void _tron_state_destroy_bike(tron_state_t* state, tron_bike_t* bike) {
     int x = bike->x;
     int y = bike->y;
 
-    assert(state->grid[x][y].state == BIKE);
+    assert(state->grid[POS(x, y)].state == BIKE);
 
     int color = bike->color;
-    state->grid[x][y].state = EMPTY;
+    state->grid[POS(x, y)].state = EMPTY;
 
-    for ( int sx = 0; sx < GRID_W; sx++ ) {
-        for ( int sy = 0; sy < GRID_H; sy++ ) {
-            if ( state->grid[sx][sy].state == LIGHT ) {
-                if ( state->grid[sx][sy].color == color ) {
-                    state->grid[sx][sy].state = EMPTY;
+    for ( int sx = 0; sx < state->width; sx++ ) {
+        for ( int sy = 0; sy < state->height; sy++ ) {
+            if ( state->grid[POS(sx, sy)].state == LIGHT ) {
+                if ( state->grid[POS(sx, sy)].color == color ) {
+                    state->grid[POS(sx, sy)].state = EMPTY;
                 }
             }
         }
@@ -39,7 +39,7 @@ void _tron_state_destroy_bike(tron_state_t* state, tron_bike_t* bike) {
 }
 
 bool _tron_state_safe(tron_state_t* state, int x, int y) {
-    return !(x < 1 || y < 1 || x >= GRID_W - 1 || y >= GRID_H - 1 || state->grid[x][y].state != EMPTY);
+    return !(x < 1 || y < 1 || x >= state->width - 1 || y >= state->height - 1 || state->grid[POS(x, y)].state != EMPTY);
 }
 
 void _tron_state_ai(tron_state_t* state, tron_bike_t* bike) {
@@ -147,17 +147,18 @@ void tron_state_step(tron_state_t* state) {
                 break;
         }
 
-        if ( nx < 0 || ny < 0 || nx >= GRID_W || ny >= GRID_H || state->grid[nx][ny].state != EMPTY ) {
+        if ( !_tron_state_safe(state, nx, ny) ) {
             _tron_state_destroy_bike(state, state->bikes[i]);
         }
         else {
+            state->bikes[i]->score++;
             state->bikes[i]->x = nx;
             state->bikes[i]->y = ny;
-            state->grid[nx][ny].state = BIKE;
-            state->grid[nx][ny].bike = state->bikes[i];
+            state->grid[POS(nx, ny)].state = BIKE;
+            state->grid[POS(nx, ny)].bike = state->bikes[i];
 
-            state->grid[x][y].state = LIGHT;
-            state->grid[x][y].color = state->bikes[i]->color;
+            state->grid[POS(x, y)].state = LIGHT;
+            state->grid[POS(x, y)].color = state->bikes[i]->color;
         }
     }
 }
@@ -174,8 +175,8 @@ void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai) {
     bike->x = x;
     bike->y = y;
 
-    state->grid[x][y].state = BIKE;
-    state->grid[x][y].bike = bike;
+    state->grid[POS(x, y)].state = BIKE;
+    state->grid[POS(x, y)].bike = bike;
 
     if ( state->bike_cnt >= state->bike_alloc) {
         state->bike_alloc = state->bike_alloc * 2;
@@ -187,10 +188,16 @@ void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai) {
     if ( !ai ) {
         state->player = bike;
     }
+
+    bike->score = 0;
 }
 
-tron_state_t* tron_state_init() {
+tron_state_t* tron_state_init(int width, int height) {
     tron_state_t* state = (tron_state_t*) malloc(sizeof(tron_state_t));
+
+    state->width = width;
+    state->height = height;
+    state->grid = malloc(sizeof(tron_cell_t) * (width * height));
 
     state->player = NULL;
     state->bike_cnt = 0;
@@ -199,8 +206,8 @@ tron_state_t* tron_state_init() {
 
     state->game_state = READY;
 
-    for ( int x = 0; x < GRID_W; x++ ) {
-        for ( int y = 0; y < GRID_H; y++ ) {
+    for ( int x = 0; x < state->width; x++ ) {
+        for ( int y = 0; y < state->height; y++ ) {
             tron_cell_t cell = {
                 .state = EMPTY,
                 .color = 0,
@@ -208,7 +215,7 @@ tron_state_t* tron_state_init() {
                 .y = y
             };
 
-            state->grid[x][y] = cell;
+            state->grid[POS(x, y)] = cell;
         }
     }
 
@@ -217,7 +224,9 @@ tron_state_t* tron_state_init() {
 
 void tron_state_clean(tron_state_t* tron) {
     for ( int i = 0; i < tron->bike_cnt; i++ ) {
-        free(tron->bikes[i]);
+        if ( tron->bikes[i] != NULL ) {
+            free(tron->bikes[i]);
+        }
     }
 
     free(tron->bikes);

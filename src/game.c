@@ -16,100 +16,121 @@ unsigned int rgb2pair(int rgb) {
     }
 }
 
-int game() {
-    tron_state_t* tron = tron_state_init();
+int game(int width, int height) {
+    tron_state_t* state = tron_state_init(width, height);
 
-    tron_state_spawn_bike(tron, 5, 5, false);
-    tron_state_spawn_bike(tron, 10, 10, true);
+    tron_state_spawn_bike(state, 5, 5, false);
+    tron_state_spawn_bike(state, 10, 10, true);
+
+    bool paused = false;
 
     while ( true ) {
         switch ( getch() ) {
             case 'w':
-                if ( tron->player != NULL ) {
-                    tron_bike_turn(tron->player, NORTH);
+                if ( state->player != NULL && !paused ) {
+                    tron_bike_turn(state->player, NORTH);
                 }
 
                 break;
             case 's':
-                if ( tron->player != NULL ) {
-                    tron_bike_turn(tron->player, SOUTH);
+                if ( state->player != NULL && !paused ) {
+                    tron_bike_turn(state->player, SOUTH);
                 }
 
                 break;
             case 'd':
-                if ( tron->player != NULL ) {
-                    tron_bike_turn(tron->player, EAST);
+                if ( state->player != NULL && !paused ) {
+                    tron_bike_turn(state->player, EAST);
                 }
 
                 break;
 
             case 'a':
-                if ( tron->player != NULL ) {
-                    tron_bike_turn(tron->player, WEST);
+                if ( state->player != NULL && !paused ) {
+                    tron_bike_turn(state->player, WEST);
                 }
 
                 break;
 
             case ' ':
-                tron_state_step(tron);
+                tron_state_step(state);
                 break;
 
             case 'q':
                 goto lose;
                 return 1;
 
+            case 'p':
+                paused = !paused;
+                box(stdscr, 0, 0);
+                mvprintw(0, 5, "Paused");
+                refresh();
+                break;
+
             default:
                 break;
         }
 
-        tron_state_step(tron);
+        if ( !paused ) {
+            tron_state_step(state);
 
-        for ( int x = 0; x < GRID_W; x++ ) {
-            for ( int y = 0; y < GRID_H; y++ ) {
-                move(y, x);
 
-                if ( tron->grid[x][y].state == EMPTY ) {
-                    if ( x != 0 || y != 0 || x != GRID_W - 1 || y != GRID_H - 1 ) {
-                        addch(' ');
+            for ( int x = 0; x < state->width; x++ ) {
+                for ( int y = 0; y < state->height; y++ ) {
+                    move(y, x);
+
+                    if ( state->grid[POS(x, y)].state == EMPTY ) {
+                        if ( x != 0 || y != 0 || x != state->width - 1 || y != state->height - 1 ) {
+                            addch(' ');
+                        }
                     }
-                }
-                else if ( tron->grid[x][y].state == LIGHT ) {
-                    color_set(rgb2pair(tron->grid[x][y].color), NULL);
-                    addch('#');
-                }
-                else if ( tron->grid[x][y].state == BIKE ) {
-                    color_set(rgb2pair(tron->grid[x][y].bike->color), NULL);
+                    else if ( state->grid[POS(x, y)].state == LIGHT ) {
+                        color_set(rgb2pair(state->grid[POS(x, y)].color), NULL);
+                        addch('#');
+                    }
+                    else if ( state->grid[POS(x, y)].state == BIKE ) {
+                        color_set(rgb2pair(state->grid[POS(x, y)].bike->color), NULL);
 
-                    switch ( tron->grid[x][y].bike->dir ) {
-                        case NORTH: addch('^');
-                        case EAST:  addch('>');
-                        case WEST:  addch('<');
-                        case SOUTH: addch('V');
+                        switch ( state->grid[POS(x, y)].bike->dir ) {
+                            case NORTH: addch('^');
+                            case EAST:  addch('>');
+                            case WEST:  addch('<');
+                            case SOUTH: addch('V');
+                        }
                     }
                 }
             }
-        }
 
-        color_set(0, NULL);
-        box(stdscr, 0, 0);
-        refresh();
+            color_set(0, NULL);
+            box(stdscr, 0, 0);
 
-        if ( tron->bikes[0] == NULL ) {
-            goto lose;
+
+            if ( state->bikes[0] == NULL ) {
+                goto lose;
+            }
+            else {
+                mvprintw(0, 5, "Score: %d", state->player->score);
+            }
+
+            refresh();
         }
 
         usleep(60000);
     }
 
     lose:
-    tron_state_clean(tron);
     color_set(1, NULL);
-    mvprintw((GRID_H - 1) / 2, ((GRID_W - 1) / 2) - 7, "You lose! Space to retry.");
+    mvprintw((state->height - 1) / 2, ((state->width - 1) / 2) - 7, "You lose! Space to retry.");
+    tron_state_clean(state);
     refresh();
     sleep(2);
 
-    if ( getch() == ' ' ) {
-        return game();
+
+    while ( true ) {
+        int c = getch();
+
+        if ( c == ERR ) break;
+        if ( c == ' ' ) return game(width, height);
     }
 
     return 0;
@@ -133,11 +154,14 @@ int main(int argc, char* argv[]) {
 	init_pair(4,  COLOR_YELLOW,  COLOR_BLACK);
     init_pair(5,  COLOR_MAGENTA, COLOR_BLACK);
 
-    resize_term(GRID_H + 1, GRID_W + 1);
     nodelay(window, true);
     box(stdscr, 0, 0);
 
-    game();
+    int w, h;
+
+    getmaxyx(window, h, w);
+
+    game(w, h);
 
     delwin(window);
     endwin();
