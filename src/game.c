@@ -5,17 +5,6 @@
 #include "tron.h"
 #include <unistd.h>
 
-unsigned int rgb2pair(int rgb) {
-    switch ( rgb ) {
-        case 0x000000: return 0;
-        case 0xFF0000: return 1;
-        case 0x00FF00: return 2;
-        case 0x0000FF: return 3;
-        case 0xFF00FF: return 4;
-        default:       return 5;
-    }
-}
-
 int game(int width, int height) {
     tron_state_t* state = tron_state_init(width, height);
 
@@ -74,22 +63,21 @@ int game(int width, int height) {
         if ( !paused ) {
             tron_state_step(state);
 
-
             for ( int x = 0; x < state->width; x++ ) {
                 for ( int y = 0; y < state->height; y++ ) {
                     move(y, x);
 
-                    if ( state->grid[POS(x, y)].state == EMPTY ) {
+                    if ( state->grid[POS(x, y)].color == 0 ) {
                         if ( x != 0 || y != 0 || x != state->width - 1 || y != state->height - 1 ) {
                             addch(' ');
                         }
                     }
-                    else if ( state->grid[POS(x, y)].state == LIGHT ) {
-                        color_set(rgb2pair(state->grid[POS(x, y)].color), NULL);
+                    else if ( tron_state_get_cell(state, x, y) == LIGHT ) {
+                        color_set(state->grid[POS(x, y)].color, NULL);
                         addch('#');
                     }
-                    else if ( state->grid[POS(x, y)].state == BIKE ) {
-                        color_set(rgb2pair(state->grid[POS(x, y)].bike->color), NULL);
+                    else {
+                        color_set(state->grid[POS(x, y)].bike->color, NULL);
 
                         switch ( state->grid[POS(x, y)].bike->dir ) {
                             case NORTH: addch('^');

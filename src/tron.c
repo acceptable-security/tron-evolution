@@ -3,23 +3,44 @@
 #include "tron.h"
 #include <curses.h>
 
-unsigned int bike_colors[] = { 0xFF0000, 0x00FF00, 0x0000FF, 0xFF00FF };
-int bike_color_cnt = 4;
+//                     N  E  S   W
+unsigned int dx[] = {  0, 1, 0, -1 };
+unsigned int dy[] = { -1, 0, 1,  0 };
+
+/**
+ * I know I'm going to forget in a bit so
+ * because we are using a union of the light color and
+ * the pointer of the bike, we can assume that if the
+ * color is set, but the upper bytes of the cell aren't
+ * set, we can assume that a light not a bike is there because
+ * half the pointer is missing :)
+ */
+inline tron_cell_state_t tron_state_get_cell(tron_state_t* state, int x, int y) {
+    tron_cell_t cell = state->grid[POS(x, y)];
+
+    if ( cell.color == 0 ) {
+        return EMPTY;
+    }
+
+    if ( (size_t)(cell.bike) >> 8 == 0 ) {
+        return LIGHT;
+    }
+
+    return BIKE;
+}
 
 void _tron_state_destroy_bike(tron_state_t* state, tron_bike_t* bike) {
     int x = bike->x;
     int y = bike->y;
 
-    assert(state->grid[POS(x, y)].state == BIKE);
-
     int color = bike->color;
-    state->grid[POS(x, y)].state = EMPTY;
+    state->grid[POS(x, y)].bike = 0;
 
     for ( int sx = 0; sx < state->width; sx++ ) {
         for ( int sy = 0; sy < state->height; sy++ ) {
-            if ( state->grid[POS(sx, sy)].state == LIGHT ) {
+            if ( tron_state_get_cell(state, sx, sy) == LIGHT ) {
                 if ( state->grid[POS(sx, sy)].color == color ) {
-                    state->grid[POS(sx, sy)].state = EMPTY;
+                    state->grid[POS(sx, sy)].bike = 0;
                 }
             }
         }
@@ -38,65 +59,23 @@ void _tron_state_destroy_bike(tron_state_t* state, tron_bike_t* bike) {
     free(bike);
 }
 
-bool _tron_state_safe(tron_state_t* state, int x, int y) {
-    return !(x < 1 || y < 1 || x >= state->width - 1 || y >= state->height - 1 || state->grid[POS(x, y)].state != EMPTY);
+static inline bool _tron_state_safe(tron_state_t* state, int x, int y) {
+    return !(x < 1 || y < 1 || x >= state->width - 1 || y >= state->height - 1 || state->grid[POS(x, y)].color != 0);
 }
 
 void _tron_state_ai(tron_state_t* state, tron_bike_t* bike) {
     int x = bike->x;
     int y = bike->y;
 
-    int nx = x;
-    int ny = y;
-
-    switch ( bike->dir ) {
-        case NORTH:
-            nx += 0;
-            ny -= 1;
-            break;
-        case EAST:
-            nx += 1;
-            ny += 0;
-            break;
-        case WEST:
-            nx -= 1;
-            ny += 0;
-            break;
-        case SOUTH:
-            nx += 0;
-            ny += 1;
-            break;
-    }
+    int nx = x + dx[bike->dir];
+    int ny = y + dy[bike->dir];
 
     if ( !_tron_state_safe(state, nx, ny) ) {
-        int dir = 0;
-
         for ( int i = 0; i < 3; i++ ) {
-            nx = bike->x;
-            ny = bike->y;
+            int dir = (bike->dir + i) % 4;
 
-            switch ( (bike->dir + i) % 4 ) {
-                case NORTH:
-                    nx += 0;
-                    ny -= 1;
-                    dir = NORTH;
-                    break;
-                case EAST:
-                    nx += 1;
-                    ny += 0;
-                    dir = EAST;
-                    break;
-                case WEST:
-                    nx -= 1;
-                    ny += 0;
-                    dir = WEST;
-                    break;
-                case SOUTH:
-                    nx += 0;
-                    ny += 1;
-                    dir = SOUTH;
-                    break;
-            }
+            nx = bike->x + dx[dir];
+            ny = bike->y + dy[dir];
 
             if ( _tron_state_safe(state, nx, ny) ) {
                 bike->dir = dir;
@@ -125,27 +104,8 @@ void tron_state_step(tron_state_t* state) {
         int x = state->bikes[i]->x;
         int y = state->bikes[i]->y;
 
-        int nx = x;
-        int ny = y;
-
-        switch ( state->bikes[i]->dir ) {
-            case NORTH:
-                nx += 0;
-                ny -= 1;
-                break;
-            case EAST:
-                nx += 1;
-                ny += 0;
-                break;
-            case WEST:
-                nx -= 1;
-                ny += 0;
-                break;
-            case SOUTH:
-                nx += 0;
-                ny += 1;
-                break;
-        }
+        int nx = x + dx[state->bikes[i]->dir];
+        int ny = y + dy[state->bikes[i]->dir];
 
         if ( !_tron_state_safe(state, nx, ny) ) {
             _tron_state_destroy_bike(state, state->bikes[i]);
@@ -154,10 +114,9 @@ void tron_state_step(tron_state_t* state) {
             state->bikes[i]->score++;
             state->bikes[i]->x = nx;
             state->bikes[i]->y = ny;
-            state->grid[POS(nx, ny)].state = BIKE;
             state->grid[POS(nx, ny)].bike = state->bikes[i];
 
-            state->grid[POS(x, y)].state = LIGHT;
+            state->grid[POS(x, y)].bike = 0;
             state->grid[POS(x, y)].color = state->bikes[i]->color;
         }
     }
@@ -170,12 +129,11 @@ void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai) {
 
     tron_bike_t* bike = (tron_bike_t*) malloc(sizeof(tron_bike_t));
     bike->dir = SOUTH;
-    bike->color = bike_colors[state->bike_cnt % bike_color_cnt];
+    bike->color = (state->bike_cnt % 4) + 1;
     bike->ai = ai;
     bike->x = x;
     bike->y = y;
 
-    state->grid[POS(x, y)].state = BIKE;
     state->grid[POS(x, y)].bike = bike;
 
     if ( state->bike_cnt >= state->bike_alloc) {
@@ -209,10 +167,7 @@ tron_state_t* tron_state_init(int width, int height) {
     for ( int x = 0; x < state->width; x++ ) {
         for ( int y = 0; y < state->height; y++ ) {
             tron_cell_t cell = {
-                .state = EMPTY,
-                .color = 0,
-                .x = x,
-                .y = y
+                .bike = 0
             };
 
             state->grid[POS(x, y)] = cell;
@@ -229,6 +184,7 @@ void tron_state_clean(tron_state_t* tron) {
         }
     }
 
+    free(tron->grid);
     free(tron->bikes);
     free(tron);
 }

@@ -30,15 +30,10 @@ typedef enum {
 } tron_cell_state_t;
 
 typedef struct {
-    tron_cell_state_t state;
-
     union {
-        int color;
+        char color;
         tron_bike_t* bike;
     };
-
-    int x;
-    int y;
 } tron_cell_t;
 
 typedef enum {
@@ -65,5 +60,6 @@ void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai);
 void tron_bike_turn(tron_bike_t* bike, tron_direction_t dir);
 tron_state_t* tron_state_init(int width, int height);
 void tron_state_clean(tron_state_t* tron);
+tron_cell_state_t tron_state_get_cell(tron_state_t* state, int x, int y);
 
 #endif
