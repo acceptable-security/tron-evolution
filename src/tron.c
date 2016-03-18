@@ -3,10 +3,6 @@
 #include "tron.h"
 #include <curses.h>
 
-//                     N  E  S   W
-unsigned int dx[] = {  0, 1, 0, -1 };
-unsigned int dy[] = { -1, 0, 1,  0 };
-
 /**
  * I know I'm going to forget in a bit so
  * because we are using a union of the light color and
@@ -63,28 +59,6 @@ static inline bool _tron_state_safe(tron_state_t* state, int x, int y) {
     return !(x < 1 || y < 1 || x >= state->width - 1 || y >= state->height - 1 || state->grid[POS(x, y)].color != 0);
 }
 
-void _tron_state_ai(tron_state_t* state, tron_bike_t* bike) {
-    int x = bike->x;
-    int y = bike->y;
-
-    int nx = x + dx[bike->dir];
-    int ny = y + dy[bike->dir];
-
-    if ( !_tron_state_safe(state, nx, ny) ) {
-        for ( int i = 0; i < 3; i++ ) {
-            int dir = (bike->dir + i) % 4;
-
-            nx = bike->x + dx[dir];
-            ny = bike->y + dy[dir];
-
-            if ( _tron_state_safe(state, nx, ny) ) {
-                bike->dir = dir;
-                return;
-            }
-        }
-    }
-}
-
 void tron_bike_turn(tron_bike_t* bike, tron_direction_t dir) {
     if ( (bike->dir + 2) % 4 != dir ) {
         bike->dir = dir;
@@ -98,7 +72,7 @@ void tron_state_step(tron_state_t* state) {
         }
 
         if ( state->bikes[i]->ai ) {
-            _tron_state_ai(state, state->bikes[i]);
+            tron_state_ai(state, state->bikes[i]);
         }
 
         int x = state->bikes[i]->x;

@@ -7,7 +7,7 @@
 
 # CHANGE THESE TO FIT YOUR NEEDS
 CC = cc
-CFLAGS = -c -Wall -Isrc/
+CFLAGS = -c -Wall -Isrc/ -g
 LDFLAGS = -lpthread -lcurses
 # DONT TOUCH AFTER THIS - IT'S ALL AUTO
 
