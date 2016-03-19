@@ -8,7 +8,7 @@
 int game(int width, int height) {
     tron_state_t* state = tron_state_init(width, height);
 
-    tron_state_spawn_bike(state, 5, 5, false);
+    tron_state_spawn_bike(state, 5, 10, false);
     tron_state_spawn_bike(state, 10, 10, true);
 
     bool paused = false;
@@ -124,34 +124,36 @@ int game(int width, int height) {
 }
 
 int main(int argc, char* argv[]) {
-    WINDOW* window = initscr();
+    return test_main(argc, argv);
 
-    if ( window == NULL ) {
-        fprintf(stderr, "Unable to initalize curses window.\n");
-        return 1;
-    }
-
-    noecho();
-
-    start_color();
-
-    init_pair(1,  COLOR_RED,     COLOR_BLACK);
-	init_pair(2,  COLOR_GREEN,   COLOR_BLACK);
-	init_pair(3,  COLOR_BLUE,    COLOR_BLACK);
-	init_pair(4,  COLOR_YELLOW,  COLOR_BLACK);
-    init_pair(5,  COLOR_MAGENTA, COLOR_BLACK);
-
-    nodelay(window, true);
-    box(stdscr, 0, 0);
-
-    int w, h;
-
-    getmaxyx(window, h, w);
-
-    game(w, h);
-
-    delwin(window);
-    endwin();
-
-    return 0;
+    // WINDOW* window = initscr();
+    //
+    // if ( window == NULL ) {
+    //     fprintf(stderr, "Unable to initalize curses window.\n");
+    //     return 1;
+    // }
+    //
+    // noecho();
+    //
+    // start_color();
+    //
+    // init_pair(1,  COLOR_RED,     COLOR_BLACK);
+	// init_pair(2,  COLOR_GREEN,   COLOR_BLACK);
+	// init_pair(3,  COLOR_BLUE,    COLOR_BLACK);
+	// init_pair(4,  COLOR_YELLOW,  COLOR_BLACK);
+    // init_pair(5,  COLOR_MAGENTA, COLOR_BLACK);
+    //
+    // nodelay(window, true);
+    // box(stdscr, 0, 0);
+    //
+    // int w, h;
+    //
+    // getmaxyx(window, h, w);
+    //
+    // game(w, h);
+    //
+    // delwin(window);
+    // endwin();
+    //
+    // return 0;
 }

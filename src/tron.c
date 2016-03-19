@@ -102,7 +102,7 @@ void tron_state_spawn_bike(tron_state_t* state, int x, int y, bool ai) {
     }
 
     tron_bike_t* bike = (tron_bike_t*) malloc(sizeof(tron_bike_t));
-    bike->dir = SOUTH;
+    bike->dir = NORTH;
     bike->color = (state->bike_cnt % 4) + 1;
     bike->ai = ai;
     bike->x = x;

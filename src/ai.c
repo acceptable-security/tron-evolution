@@ -4,31 +4,30 @@
 #include <string.h>
 
 static inline int _filled(tron_state_t* state, int x, int y) {
-    return state->grid[POS(x, y)].color > 0;
+    return (x < 1 || y < 1 || x >= state->width - 1 || y >= state->height - 1 || state->grid[POS(x, y)].color != 0);
 }
 
 void _floodfill(tron_state_t* state, int* map, int x, int y, int ox, int oy) {
-    if ( x < 0 || y < 0 || x >= state->width || y >= state->height ) {
+    if ( _filled(state, x, y) && !(x == ox && y == oy) ) {
         return;
     }
 
-    if ( map[POS(x, y)] > -1 || _filled(state, x, y) ) {
+    if ( map[POS(x, y)] > -1 ) {
         return;
     }
 
     map[POS(x, y)] = ((ox - x)*(ox - x)) + ((oy - y)*(oy - y));
 
-    _floodfill(state, map, x, y - 1, ox, oy);
-    _floodfill(state, map, x, y + 1, ox, oy);
-    _floodfill(state, map, x + 1, y, ox, oy);
-    _floodfill(state, map, x - 1, y, ox, oy);
-
-    return;
+    _floodfill(state, map, x    , y - 1, ox, oy);
+    _floodfill(state, map, x    , y + 1, ox, oy);
+    _floodfill(state, map, x + 1, y    , ox, oy);
+    _floodfill(state, map, x - 1, y    , ox, oy);
 }
 
 int* floodfill(tron_state_t* state, int x, int y) {
     int* map = (int*) malloc(sizeof(int) * (state->width * state->height));
     memset(map, -1, sizeof(int) * (state->width * state->height));
+
     _floodfill(state, map, x, y, x, y);
     return map;
 }
@@ -45,7 +44,7 @@ unsigned int evaluate_pos(tron_state_t* state, int my_x, int my_y,
     *p2score = 0;
 
     for ( int x = 1; x < state->width - 1; x++ ) {
-        for ( int y = 0; y < state->height - 1; y++ ) {
+        for ( int y = 1; y < state->height - 1; y++ ) {
             if ( _filled(state, x, y) ) {
                 continue;
             }
@@ -103,11 +102,16 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
     int bestmove = 0;
     int bestaltmove = 0;
 
+    // printf("Depth: %d\n", depth);
     for ( int move = 0; move < 4; move++ ) {
+        printf("Depth %d\n", depth);
+        // printf("Looking at move %d\n", move);
+
         int x = my_x + dx[move];
         int y = my_y + dy[move];
 
         if ( _filled(state, x, y) ) {
+            printf("Not considering move %d\n", move);
             continue;
         }
 
@@ -118,11 +122,14 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
         int _p1s = *p1score;
         int _p2s = *p2score;
 
+        // printf("A: %d\tB: %d\n", a, b);
+
         int score = -negamax(state, their_x, their_y, my_x, my_y, p1score, p2score, p1dist, p2dist, depth - 1, -b, -a, p2move);
 
-        state->grid[POS(x, y)].color = 0;
+        state->grid[POS(x, y)].bike = 0;
 
         if ( score > a ) {
+            printf("Found best score %d for move %d\n", score, move);
             a = score;
             bestmove = move;
             bestaltmove = *p2move;
@@ -132,15 +139,18 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
             }
         }
         else {
+            printf("%d not good enough\n", score);
             *p1dist = _p1;
             *p1score = _p1s;
             *p2dist = _p2;
             *p2score = _p2s;
         }
+
+        // printf("Current A: %d\n\n", a);
     }
 
     *p2move = bestmove;
-
+    printf("Move value: %d\n", a);
     return a;
 }
 
@@ -162,11 +172,11 @@ void tron_state_ai(tron_state_t* state, tron_bike_t* bike) {
     int* p1dist = NULL;
     int* p2dist = NULL;
 
-    int score = negamax(state,  their_x, their_y, my_x, my_y, &p1score, &p2score, &p1dist, &p2dist, 6, a, b, &p2move);
+    int score = negamax(state, their_x, their_y, my_x, my_y, &p1score, &p2score, &p1dist, &p2dist, 6, a, b, &p2move);
 
     free(p1dist);
     free(p2dist);
 
-    mvprintw(3, 3, "Score %d", score);
+    // printf("Score: %d\nDirection: %d\n", score, p2move);
     bike->dir = p2move;
 }

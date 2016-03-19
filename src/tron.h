@@ -55,7 +55,7 @@ typedef struct {
     unsigned int bike_alloc;
 } tron_state_t;
 
-//                     N  E  S   W
+//                            N  E  S   W
 static unsigned int dx[] = {  0, 1, 0, -1 };
 static unsigned int dy[] = { -1, 0, 1,  0 };
 
