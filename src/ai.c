@@ -106,16 +106,11 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
     int bestmove = 0;
     int bestaltmove = 0;
 
-    // printf("Depth: %d\n", depth);
     for ( int move = 0; move < 4; move++ ) {
-        // printf("Depth %d\n", depth);
-        // printf("Looking at move %d\n", move);
-
         int x = my_x + dx[move];
         int y = my_y + dy[move];
 
         if ( _filled(state, x, y) ) {
-            // printf("Not considering move %d\n", move);
             continue;
         }
 
@@ -133,7 +128,6 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
         state->grid[POS(x, y)].bike = 0;
 
         if ( score >= a ) {
-            // printf("Found best score %d for move %d\n", score, move);
             a = score;
             bestmove = move;
             bestaltmove = p2move;
@@ -143,18 +137,14 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
             }
         }
         else {
-            // printf("%d not good enough\n", score);
             p1dist = _p1;
             p1score = _p1s;
             p2dist = _p2;
             p2score = _p2s;
         }
-
-        // printf("Current A: %d\n\n", a);
     }
 
     p2move = bestmove;
-    // printf("Move value: %d @ %d\n", a, p2move);
     return a;
 }
 
@@ -176,11 +166,10 @@ void tron_state_ai(tron_state_t* state, tron_bike_t* bike) {
     p1dist = NULL;
     p2dist = NULL;
 
-    int score = negamax(state, their_x, their_y, my_x, my_y, 6, a, b);
+    negamax(state, their_x, their_y, my_x, my_y, 6, a, b);
 
     free(p1dist);
     free(p2dist);
 
-    // printf("Score: %d\nDirection: %d\n", score, p2move);
     bike->dir = p2move;
 }
