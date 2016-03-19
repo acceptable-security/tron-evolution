@@ -1,6 +1,7 @@
 #include "tron.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 extern inline int _filled(tron_state_t* state, int x, int y);
 extern void _floodfill(tron_state_t* state, int* map, int x, int y, int ox, int oy);
@@ -30,6 +31,8 @@ int test_main(int argc, char* argv[]) {
             printf("Bike dead.\n");
             break;
         }
+
+        assert(bike->ai);
 
         printf("%d %d\n", bike->x, bike->y);
         int* tmp = floodfill(state, bike->x, bike->y);

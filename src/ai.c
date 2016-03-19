@@ -3,6 +3,15 @@
 #include <curses.h>
 #include <string.h>
 
+unsigned int p1move;
+unsigned int p2move;
+
+unsigned int p1score;
+unsigned int p2score;
+
+int* p1dist;
+int* p2dist;
+
 static inline int _filled(tron_state_t* state, int x, int y) {
     return (x < 1 || y < 1 || x >= state->width - 1 || y >= state->height - 1 || state->grid[POS(x, y)].color != 0);
 }
@@ -33,15 +42,13 @@ int* floodfill(tron_state_t* state, int x, int y) {
 }
 
 unsigned int evaluate_pos(tron_state_t* state, int my_x, int my_y,
-                                               int their_x, int their_y,
-                                               int* p1score, int* p2score,
-                                               int** p1dist, int** p2dist) {
-    *p1dist = floodfill(state, my_x, my_y);
-    *p2dist = floodfill(state, their_x, their_y);
+                                               int their_x, int their_y) {
+    p1dist = floodfill(state, my_x, my_y);
+    p2dist = floodfill(state, their_x, their_y);
 
     unsigned int score = 0;
-    *p1score = 0;
-    *p2score = 0;
+    p1score = 0;
+    p2score = 0;
 
     for ( int x = 1; x < state->width - 1; x++ ) {
         for ( int y = 1; y < state->height - 1; y++ ) {
@@ -49,32 +56,32 @@ unsigned int evaluate_pos(tron_state_t* state, int my_x, int my_y,
                 continue;
             }
 
-            if ( (*p2dist)[POS(x, y)] == -1 ) {
-                if ( (*p1dist)[POS(x, y)] > -1 ) {
-                    (*p2score)++;
+            if ( p2dist[POS(x, y)] == -1 ) {
+                if ( p1dist[POS(x, y)] > -1 ) {
+                    p2score++;
                     score++;
                 }
 
                 continue;
             }
 
-            if ( (*p1dist)[POS(x, y)] == -1 ) {
-                if ( (*p2dist)[POS(x, y)] > -1 ) {
-                    (*p1score)++;
+            if ( p1dist[POS(x, y)] == -1 ) {
+                if ( p2dist[POS(x, y)] > -1 ) {
+                    p1score++;
                     score--;
                 }
 
                 continue;
             }
 
-            int d = (*p1dist)[POS(x, y)] - (*p2dist)[POS(x, y)];
+            int d = p1dist[POS(x, y)] - p2dist[POS(x, y)];
 
             if ( d < 0 ) {
-                (*p2score)++;
+                p2score++;
                 score++;
             }
             else {
-                (*p1score)++;
+                p1score++;
                 score--;
             }
         }
@@ -85,16 +92,13 @@ unsigned int evaluate_pos(tron_state_t* state, int my_x, int my_y,
 
 unsigned int negamax(tron_state_t* state, int my_x, int my_y,
                                           int their_x, int their_y,
-                                          int* p1score, int* p2score,
-                                          int** p1dist, int** p2dist,
-                                          int depth, int a, int b, int* p2move) {
+                                          int depth, int a, int b) {
 
     if ( depth == 0) {
-        free(*p1dist);
-        free(*p2dist);
+        free(p1dist);
+        free(p2dist);
 
-        unsigned int res = evaluate_pos(state, my_x, my_y, their_x, their_y,
-                                               p1score, p2score, p1dist, p2dist);
+        unsigned int res = evaluate_pos(state, my_x, my_y, their_x, their_y);
 
         return res;
     }
@@ -104,53 +108,53 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
 
     // printf("Depth: %d\n", depth);
     for ( int move = 0; move < 4; move++ ) {
-        printf("Depth %d\n", depth);
+        // printf("Depth %d\n", depth);
         // printf("Looking at move %d\n", move);
 
         int x = my_x + dx[move];
         int y = my_y + dy[move];
 
         if ( _filled(state, x, y) ) {
-            printf("Not considering move %d\n", move);
+            // printf("Not considering move %d\n", move);
             continue;
         }
 
         state->grid[POS(x, y)].color = 1;
 
-        int* _p1 = *p1dist;
-        int* _p2 = *p2dist;
-        int _p1s = *p1score;
-        int _p2s = *p2score;
+        int* _p1 = p1dist;
+        int* _p2 = p2dist;
+        int _p1s = p1score;
+        int _p2s = p2score;
 
         // printf("A: %d\tB: %d\n", a, b);
 
-        int score = -negamax(state, their_x, their_y, my_x, my_y, p1score, p2score, p1dist, p2dist, depth - 1, -b, -a, p2move);
+        int score = -negamax(state, their_x, their_y, my_x, my_y, depth - 1, b, a);
 
         state->grid[POS(x, y)].bike = 0;
 
-        if ( score > a ) {
-            printf("Found best score %d for move %d\n", score, move);
+        if ( score >= a ) {
+            // printf("Found best score %d for move %d\n", score, move);
             a = score;
             bestmove = move;
-            bestaltmove = *p2move;
+            bestaltmove = p2move;
 
             if ( a >= b ) {
                 break;
             }
         }
         else {
-            printf("%d not good enough\n", score);
-            *p1dist = _p1;
-            *p1score = _p1s;
-            *p2dist = _p2;
-            *p2score = _p2s;
+            // printf("%d not good enough\n", score);
+            p1dist = _p1;
+            p1score = _p1s;
+            p2dist = _p2;
+            p2score = _p2s;
         }
 
         // printf("Current A: %d\n\n", a);
     }
 
-    *p2move = bestmove;
-    printf("Move value: %d\n", a);
+    p2move = bestmove;
+    // printf("Move value: %d @ %d\n", a, p2move);
     return a;
 }
 
@@ -165,14 +169,14 @@ void tron_state_ai(tron_state_t* state, tron_bike_t* bike) {
     int my_y = state->player->y;
     int a = -1000000;
     int b = 1000000;
-    int p2move = 0;
+    p2move = 0;
 
-    int p1score = 0;
-    int p2score = 0;
-    int* p1dist = NULL;
-    int* p2dist = NULL;
+    p1score = 0;
+    p2score = 0;
+    p1dist = NULL;
+    p2dist = NULL;
 
-    int score = negamax(state, their_x, their_y, my_x, my_y, &p1score, &p2score, &p1dist, &p2dist, 6, a, b, &p2move);
+    int score = negamax(state, their_x, their_y, my_x, my_y, 6, a, b);
 
     free(p1dist);
     free(p2dist);
