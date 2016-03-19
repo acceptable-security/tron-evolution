@@ -137,6 +137,9 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
             }
         }
         else {
+            free(p1dist);
+            free(p2dist);
+            
             p1dist = _p1;
             p1score = _p1s;
             p2dist = _p2;
