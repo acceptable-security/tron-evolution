@@ -123,9 +123,7 @@ int game(int width, int height) {
     return 0;
 }
 
-int main(int argc, char* argv[]) {
-    // return test_main(argc, argv);
-
+int game_main(int argc, char* argv[]) {
     WINDOW* window = initscr();
 
     if ( window == NULL ) {

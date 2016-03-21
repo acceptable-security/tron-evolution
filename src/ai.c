@@ -121,8 +121,6 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
         int _p1s = p1score;
         int _p2s = p2score;
 
-        // printf("A: %d\tB: %d\n", a, b);
-
         int score = -negamax(state, their_x, their_y, my_x, my_y, depth - 1, b, a);
 
         state->grid[POS(x, y)].bike = 0;
@@ -139,7 +137,7 @@ unsigned int negamax(tron_state_t* state, int my_x, int my_y,
         else {
             free(p1dist);
             free(p2dist);
-            
+
             p1dist = _p1;
             p1score = _p1s;
             p2dist = _p2;

@@ -8,7 +8,7 @@
 # CHANGE THESE TO FIT YOUR NEEDS
 CC = cc
 CFLAGS = -c -Wall -Isrc/ -g
-LDFLAGS = -lpthread -lcurses
+LDFLAGS = -lpthread -lcurses -lm
 # DONT TOUCH AFTER THIS - IT'S ALL AUTO
 
 NAME = $(notdir $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST))))))
