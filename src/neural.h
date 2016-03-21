@@ -35,7 +35,10 @@ typedef struct {
 } neural_network_t;
 
 neural_network_t* neural_network_init(unsigned int input_node_cnt, unsigned int output_node_cnt);
-void neural_network_add_connection(neural_network_t* network, int input, int output, double weight);
+void neural_network_add_connection(neural_network_t* network, neural_node_t* input, neural_node_t* output, double weight);
+void neural_network_add_node(neural_network_t* network, neural_node_t* node);
+void neural_network_split_connection(neural_network_t* network, neural_connection_t* connection, neural_node_t* node, double weight);
+neural_node_t* neural_network_get_node(neural_network_t* network, int n);
 void neural_network_evaluate(neural_network_t* network);
 void neural_network_clean(neural_network_t* network);
 

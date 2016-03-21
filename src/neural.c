@@ -49,15 +49,57 @@ neural_node_t* neural_network_get_node(neural_network_t* network, int n) {
     return network->input_nodes[n];
 }
 
-void neural_network_add_connection(neural_network_t* network, int input, int output, double weight) {
+void neural_network_add_node(neural_network_t* network, neural_node_t* node) {
+    if ( network == NULL ) {
+        return;
+    }
+
+    if ( (network->node_cnt + 1) > network->node_alloc ) {
+        network->node_alloc += default_alloc;
+
+        neural_node_t** tmp = realloc(network->nodes, network->node_alloc * sizeof(neural_node_t*));
+
+        if ( tmp == NULL ) {
+            // shit
+        }
+
+        network->nodes = tmp;
+    }
+
+    network->nodes[network->node_cnt++] = node;
+}
+
+void neural_network_add_connection(neural_network_t* network, neural_node_t* input, neural_node_t* output, double weight) {
     neural_connection_t* connection = (neural_connection_t*) malloc(sizeof(neural_connection_t*));
 
-    connection->input = neural_network_get_node(network, input);
-    connection->output = neural_network_get_node(network, output);
+    connection->input = input;
+    connection->output = output;
     connection->weight = weight;
 
     neural_node_add_output(connection->input, connection);
     neural_node_add_input(connection->output, connection);
+}
+
+void neural_network_split_connection(neural_network_t* network, neural_connection_t* connection, neural_node_t* node, double weight) {
+    neural_node_t* output = connection->output;
+
+    connection->output = node;
+    neural_node_add_input(node, connection);
+
+    neural_connection_t* connection2 = (neural_connection_t*) malloc(sizeof(neural_connection_t*));
+
+    connection2->input = node;
+    connection2->output = output;
+    connection2->weight = weight;
+
+    for ( int i = 0; i < output->input_cnt; i++ ) {
+        if ( output->input[i] == connection ) {
+            output->input[i] = connection2;
+            return;
+        }
+    }
+
+    neural_node_add_input(output, connection2);
 }
 
 void neural_network_evaluate(neural_network_t* network) {
@@ -94,6 +136,14 @@ void neural_network_clean(neural_network_t* network) {
     // wew less safety
     for ( int i = 0; i < network->node_cnt; i++ ) {
         if ( network->nodes[i] != NULL ) {
+            for ( int j = 0; j < network->node_cnt; j++ ) {
+                neural_node_t* node = network->nodes[j];
+
+                for ( int k = 0; k < node->input_cnt; k++ ) {
+                    free(node->input[i]);
+                }
+            }
+
             neural_node_clean(network->nodes[i]);
         }
     }
